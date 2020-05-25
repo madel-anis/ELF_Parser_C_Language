@@ -121,7 +121,7 @@ typedef struct {
 /*=================================================================*/
 
 uint8_t Elf_AllDataBuffer[1024 * 1024];
-
+uint8_t ELF_ProgramDataBuffer[1024 * 64];
 int main(void)
 {
 	
@@ -383,7 +383,30 @@ int main(void)
 		/* Program Headers Info */
 		Elf_Section_Header_t *Elf_Section_Header = (Elf_Section_Header_t *) &Elf_AllDataBuffer[Elf_Header->sh_offset];
 		
-		ISR_Offest = Elf_Section_Header[1].sh_addr;
+		ISR_Offest = Elf_Section_Header[1].sh_addr - Elf_Program_Header[0].physical_address;
+		
+		uint32_t program_index_1 = 0;
+		uint32_t first_program_Max_size = Elf_Program_Header[0].file_size - ISR_Offest;
+		printf("%d %x %x\n",first_program_Max_size , Elf_Program_Header[0].file_size ,ISR_Offest );
+		
+		for( program_index_1 ; program_index_1 < first_program_Max_size ; program_index_1++ )
+		{
+			ELF_ProgramDataBuffer[program_index_1] = Elf_AllDataBuffer[ ISR_Offest + Elf_Program_Header[0].offset + program_index_1 ];
+		}
+		
+		for(uint32_t program_index_2 = 0 ; program_index_2 <Elf_Program_Header[1].file_size ; program_index_2++)
+		{
+			ELF_ProgramDataBuffer[Elf_Program_Header[0].mem_size - ISR_Offest+ 1 + program_index_2 ]  = Elf_AllDataBuffer[ Elf_Program_Header[1].offset + program_index_2 ];
+			program_index_1++;
+		}
+		program_index_1--;
+		
+		uint32_t DataSize = program_index_1;
+		uint32_t *Demo = (uint32_t*)ELF_ProgramDataBuffer;
+		for(long long i =0 ; i<DataSize/4 ; i=i+2)
+			printf("%2X : 0x%08X 0x%08X\n" , i ,Demo[i] , Demo[i+1]);
+		
+			printf("data size = %d\n" ,DataSize);
 	}
 	else
 	{
